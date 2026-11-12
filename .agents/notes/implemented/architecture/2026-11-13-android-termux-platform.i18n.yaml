@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-13-android-termux-platform.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-13-android-termux-platform.md
+/agent-note-android-termux-platform-support:
+  en: 44709a8d9d3f83b2
+  zh: 221953b4f6e00d22
+/agent-note-android-termux-platform-support/problem:
+  en: 578c7eef99d6665f
+  zh: 451b504fae6a2a82
+/agent-note-android-termux-platform-support/decision:
+  en: 4152cdd3d7d12545
+  zh: 1d3d627a5e6728ff
+/agent-note-android-termux-platform-support/alternatives-considered:
+  en: d8af353d4fc436d1
+  zh: dbe45fa211812b34
+/agent-note-android-termux-platform-support/consequences:
+  en: f881a6872dfab65b
+  zh: 848a3b2308fdea83

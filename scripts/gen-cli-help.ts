@@ -209,7 +209,7 @@ async function collectHelp(): Promise<HelpPage[]> {
     }
     for (const name of ['NODE_OPTIONS', 'FORCE_COLOR']) Reflect.deleteProperty(environment, name)
     const help = execFileAsync(process.execPath, [
-      '--import', 'tsx/esm', 'apps/cli/src/bin.ts', ...args, '--help',
+      '--expose-internals', '--import', 'tsx/esm', 'apps/cli/src/bin.ts', ...args, '--help',
     ], {
       cwd: root, env: environment, encoding: 'utf8', timeout: 30_000,
       killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,

@@ -124,6 +124,25 @@ describe('application entrypoints', () => {
     ])
   })
 
+  it('rejects a launcher script that omits the Node internals flag', () => {
+    const root = fixture()
+    write(root, 'package.json', JSON.stringify({ scripts: { 'start:web': 'node --import tsx/esm apps/cli/src/bin.ts web' } }))
+
+    expect(applicationEntrypointViolations(root)).toEqual([
+      'package.json scripts.start:web: application launcher script must pass --expose-internals',
+    ])
+  })
+
+  it('rejects a launcher wrapper that omits the Node internals flag', () => {
+    const root = fixture()
+    write(root, 'package.json', JSON.stringify({ scripts: { 'dev:web': 'tsx scripts/dev-web.ts --poll' } }))
+    write(root, 'scripts/dev-web.ts', "spawn('node', ['--import', 'tsx/esm', 'apps/cli/src/bin.ts', 'web'])\n")
+
+    expect(applicationEntrypointViolations(root)).toEqual([
+      'scripts/dev-web.ts: application launcher wrapper must pass --expose-internals',
+    ])
+  })
+
   it('rejects a new root demo until its launch role is classified', () => {
     const root = fixture()
     write(root, 'package.json', JSON.stringify({ scripts: { 'demo:new-app': 'dsh --profile new-app' } }))

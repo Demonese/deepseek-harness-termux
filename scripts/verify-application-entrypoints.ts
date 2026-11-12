@@ -51,10 +51,13 @@ const EXECUTABLE_SOURCE_ALLOWLIST = new Map<string, string>([
 
 /**
  * Root scripts that start an application must visibly select dsh: every `demo:*`
- * script needs a row here, and the Web start and development scripts are pinned
- * by name.
+ * script needs a row here, and the primary and Web launchers are pinned by name.
+ * Each classified launch also passes {@link SOURCE_INTERNALS_FLAG}, because a
+ * source launch reads Node's internal module loader and no addon publishes that
+ * accessor on every platform.
  */
 const ROOT_LAUNCHER_POLICIES = new Map<string, LauncherPolicy>([
+  ['dsh', { kind: 'dsh-direct' }],
   ['demo:ptc', { kind: 'dsh-wrapper', wrapper: 'scripts/demo-ptc.mjs' }],
   ['demo:inspector', { kind: 'dsh-direct' }],
   ['start:web', { kind: 'dsh-direct' }],
@@ -134,6 +137,17 @@ function referencesDshCli(source: string): boolean {
   return source.includes('apps/cli/src/bin.ts')
 }
 
+/**
+ * Flag that exposes Node's internal module loader to a source launch: the
+ * vendored Loader and profile resolution read it, and the addon that offers the
+ * same access has no build for every supported platform.
+ */
+const SOURCE_INTERNALS_FLAG = '--expose-internals'
+
+function referencesSourceInternalsFlag(source: string): boolean {
+  return source.includes(SOURCE_INTERNALS_FLAG)
+}
+
 function referencesPackageEntry(source: string): boolean {
   return /packages\/[^/\s'"`]+\/[^/\s'"`]+\/(?:src|lib)\/[^\s'"`]+/.test(source)
 }
@@ -154,6 +168,7 @@ function rootLauncherViolations(root: string): string[] {
     const command = typeof commandValue === 'string' ? commandValue : ''
     if (policy.kind === 'dsh-direct') {
       if (!referencesDshCli(command)) failures.push(`package.json scripts.${name}: application launcher script must launch apps/cli/src/bin.ts`)
+      else if (!referencesSourceInternalsFlag(command)) failures.push(`package.json scripts.${name}: application launcher script must pass ${SOURCE_INTERNALS_FLAG}`)
       if (referencesPackageEntry(command)) failures.push(`package.json scripts.${name}: application launcher script must not launch a package entry directly`)
       continue
     }
@@ -169,6 +184,7 @@ function rootLauncherViolations(root: string): string[] {
     }
     const source = readFileSync(wrapperPath, 'utf8')
     if (!referencesDshCli(source)) failures.push(`${wrapper}: application launcher wrapper must launch apps/cli/src/bin.ts`)
+    else if (!referencesSourceInternalsFlag(source)) failures.push(`${wrapper}: application launcher wrapper must pass ${SOURCE_INTERNALS_FLAG}`)
     if (referencesPackageEntry(source)) failures.push(`${wrapper}: application launcher wrapper must not launch a package entry directly`)
   }
   return failures

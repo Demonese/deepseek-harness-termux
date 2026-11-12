@@ -14,7 +14,7 @@ Harness 只为 Linux、macOS 与 Windows 提供二进制与平台包。通过 Te
 
 `patches/koffi@3.1.1.patch` 在 `__ANDROID__` 下声明 `statx()`。bionic 把该声明限制在 `__USE_GNU` 且 API 级别 30 以上，于是编译器把 `statx(...)` 读作对 `<linux/stat.h>` 所定义 `struct statx` 的构造，插件无法构建。Android 自 API 30 起导出 `statx()` 函数，这低于任何随 Node 24 提供的 Termux 安装的下限。
 
-`packages/boot/app-boot/src/profile-resolution/resolver.ts` 中的 `internalModules()` 在进程带 `--expose-internals` 运行时用 `require()` 应答内部模块 id，否则回落到 `node-addon-require-builtin`。根目录 `dsh` 脚本始终传入该选项，在已安装插件的平台上不产生额外代价。这正是 vendored Loader 已经采用的顺序。
+`packages/boot/app-boot/src/profile-resolution/resolver.ts` 中的 `internalModules()` 在进程带 `--expose-internals` 运行时用 `require()` 应答内部模块 id，否则回落到 `node-addon-require-builtin`。根 launcher 一律传入该选项，`verify-application-entrypoints` 会拒绝遗漏它的源码启动；在已安装插件的平台上该选项不产生额外代价。这正是 vendored Loader 已经采用的顺序。
 
 `native/system/packages/android-arm64` 新增平台包，只含一个位于 `bin/system.node` 的 Node-API v8 插件，且不区分 libc，因为 bionic 没有这种区分。`native/system/scripts/build.ts` 用宿主 `cc` 与当前 Node 安装自带的头文件构建它，因此 `pnpm run build:native-system` 无需交叉工具链即可产出。该平台包不含 Landlock 启动器：5.13 之前的内核没有 Landlock，探测结果为不可用，隔离保持关闭。
 

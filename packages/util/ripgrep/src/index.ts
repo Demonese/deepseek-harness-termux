@@ -1,15 +1,49 @@
 /** Packaged ripgrep resolution and subprocess execution, independent of tool or Remote consumers. */
-import { existsSync } from 'node:fs'
-import { join, parse } from 'node:path'
+import { accessSync, constants, existsSync } from 'node:fs'
+import { delimiter, join, parse } from 'node:path'
 import type { SubprocessHandle, SubprocessOutcome, SubprocessRuntime, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 
 let rgPathPromise: Promise<string> | undefined
 
 /**
- * Resolve the packaged executable lazily, once per process. Single-file runtimes use an existing
- * `-rg` sidecar; Electron uses the unpacked ASAR path. Resolution failures reject
- * this call, not package loading. No system executable or remote fallback is used.
- * @returns the packaged executable's absolute path.
+ * Whether `path` names a file this process may execute. Any access failure —
+ * `ENOENT`, `ENOTDIR`, `EACCES`, or an I/O error — means this `PATH` entry cannot
+ * supply the executable, and the caller names the platform and `PATH` when no
+ * entry does.
+ */
+function isExecutableFile(path: string): boolean {
+  try {
+    accessSync(path, constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Resolve ripgrep from `PATH`, for a platform whose dependency publishes no executable.
+ * @param searchPath - the `PATH` value to scan, in order.
+ * @returns the absolute path of the first executable `rg` on `PATH`.
+ * @throws when no `PATH` entry holds an executable `rg`.
+ */
+function resolveSystemRgPath(searchPath: string): string {
+  for (const directory of searchPath.split(delimiter)) {
+    if (directory === '') continue
+    const candidate = join(directory, 'rg')
+    if (isExecutableFile(candidate)) return candidate
+  }
+  throw new Error(
+    `ripgrep publishes no executable for ${process.platform}-${process.arch}, and no executable "rg" is on PATH; `
+    + 'install ripgrep (Termux: pkg install ripgrep)',
+  )
+}
+
+/**
+ * Resolve the ripgrep executable lazily, once per process. Single-file runtimes use an existing
+ * `-rg` sidecar and Electron uses the unpacked ASAR path. Android reads the executable from
+ * `PATH`, because the dependency publishes no build for it. Resolution failures reject this call,
+ * not package loading. No executable is downloaded.
+ * @returns the ripgrep executable's absolute path.
  */
 export function resolveRgPath(): Promise<string> {
   rgPathPromise ??= Promise.resolve().then(async () => {
@@ -18,6 +52,7 @@ export function resolveRgPath(): Promise<string> {
       ? join(executable.dir, `${executable.name}-rg.exe`)
       : `${process.execPath}-rg`
     if ('pkg' in process && existsSync(executableSidecar)) return executableSidecar
+    if (process.platform === 'android') return resolveSystemRgPath(process.env.PATH ?? '')
     const dependency = (await import('@vscode/ripgrep')).rgPath
     return process.versions.electron === undefined
       ? dependency

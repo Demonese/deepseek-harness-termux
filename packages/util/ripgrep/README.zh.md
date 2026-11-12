@@ -9,7 +9,7 @@ kind: "package-library"
 
 ## 概述
 
-使用本库，无需 shell 或系统安装的 `rg` 即可启动打包的 ripgrep。`tool-fs-search` 使用收集后的输出；`workspace-files` 增量读取文件路径，并在配置的上限处停止。调用方显式传入工作目录、参数、流模式、终止宽限期与取消信号，并负责解释退出码。
+使用本库无需 shell 即可启动 ripgrep。除 Android 之外，各平台都使用打包的可执行文件；Android 上依赖不发布构建，Host 从 `PATH` 读取 `rg`。`tool-fs-search` 使用收集后的输出；`workspace-files` 增量读取文件路径，并在配置的上限处停止。调用方显式传入工作目录、参数、流模式、终止宽限期与取消信号，并负责解释退出码。
 
 ## 目录
 
@@ -37,7 +37,7 @@ kind: "package-library"
 <details>
 <summary>实现内幕——点击展开</summary>
 
-单文件运行时优先选用可执行文件旁已有的 `-rg` 附属程序，否则使用 `@vscode/ripgrep` 平台包。Electron 路径将 `app.asar` 替换为 `app.asar.unpacked`。每次启动前置 `--no-config`，防止环境中的 rg 配置启用预处理程序。子进程提供方负责环境清理与终止；调用方负责截止时间与结果预算。参见[实现](src/index.ts)。
+单文件运行时优先选用可执行文件旁已有的 `-rg` 附属程序，否则使用 `@vscode/ripgrep` 平台包；Android 上则选取 `PATH` 中第一个可执行的 `rg`。Electron 路径将 `app.asar` 替换为 `app.asar.unpacked`。每次启动前置 `--no-config`，防止环境中的 rg 配置启用预处理程序。子进程提供方负责环境清理与终止；调用方负责截止时间与结果预算。参见[实现](src/index.ts)。
 
 </details>
 
@@ -65,7 +65,7 @@ kind: "package-library"
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **要求同处一个执行环境的程序**——解析使用 Host 的打包二进制路径。远端子进程提供方没有该程序时调用失败；不查找系统 rg，也不回退到文件系统遍历。
+- **要求同处一个执行环境的程序**——解析使用 Host 的打包二进制路径；Android 上则使用 `PATH` 中的系统 `rg`。两者都没有时，远端子进程提供方调用失败；不回退到文件系统遍历，也不下载可执行文件。
 - **记录缓冲**——流式读取保留一条尚未完整的记录与当前流块；文件名可能含换行符的调用方使用 NUL 分隔符而不是换行符。记录按 UTF-8 解码，因此不是有效 UTF-8 的文件名会带着 U+FFFD 替换字符到达，无法用该字符串打开。
 
 <a id="dev-note"></a>

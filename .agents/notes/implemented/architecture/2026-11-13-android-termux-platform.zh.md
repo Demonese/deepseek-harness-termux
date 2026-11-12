@@ -18,6 +18,8 @@ Harness 只为 Linux、macOS 与 Windows 提供二进制与平台包。通过 Te
 
 `native/system/packages/android-arm64` 新增平台包，只含一个位于 `bin/system.node` 的 Node-API v8 插件，且不区分 libc，因为 bionic 没有这种区分。`native/system/scripts/build.ts` 用宿主 `cc` 与当前 Node 安装自带的头文件构建它，因此 `pnpm run build:native-system` 无需交叉工具链即可产出。该平台包不含 Landlock 启动器：5.13 之前的内核没有 Landlock，探测结果为不可用，隔离保持关闭。
 
+`@vscode/ripgrep` 同样不发布 Android 平台包，因此该平台上的 `resolveRgPath()` 从 `PATH` 读取第一个可执行的 `rg`，由 Termux 的 `ripgrep` 包支撑 `glob`、`grep` 与工作区搜索。其他平台仍使用打包的可执行文件，缺失时依旧响亮失败。
+
 `scripts/install-lefthook.mjs` 解析 Lefthook 自身查找逻辑会加载的可执行包，在缺失时打印提示并跳过钩子安装。缺少二进制是缺少能力，而非仓库状态错误，因此不应使依赖安装失败。
 
 ## Alternatives considered

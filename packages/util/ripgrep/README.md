@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use this library to start packaged ripgrep without a shell or a system `rg` installation. `tool-fs-search` uses collected output; `workspace-files` reads file paths incrementally and stops at its configured cap. Callers supply the working directory, arguments, stream modes, termination grace and cancellation signal, and own exit-code interpretation.
+Use this library to start ripgrep without a shell. The packaged executable serves every platform except Android, where the dependency publishes no build and the Host reads `rg` from `PATH`. `tool-fs-search` uses collected output; `workspace-files` reads file paths incrementally and stops at its configured cap. Callers supply the working directory, arguments, stream modes, termination grace and cancellation signal, and own exit-code interpretation.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ Import `spawnRipgrep` from this package and pass the composed subprocess service
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The resolver selects the executable's existing `-rg` sidecar in a single-file runtime, otherwise the `@vscode/ripgrep` platform package. Electron paths replace `app.asar` with `app.asar.unpacked`. Every spawn prepends `--no-config` so an ambient rg configuration cannot enable a preprocessor. The subprocess provider owns environment scrubbing and termination; the caller owns deadlines and result budgets. See [the implementation](src/index.ts).
+The resolver selects the executable's existing `-rg` sidecar in a single-file runtime, otherwise the `@vscode/ripgrep` platform package, and on Android the first executable `rg` on `PATH`. Electron paths replace `app.asar` with `app.asar.unpacked`. Every spawn prepends `--no-config` so an ambient rg configuration cannot enable a preprocessor. The subprocess provider owns environment scrubbing and termination; the caller owns deadlines and result budgets. See [the implementation](src/index.ts).
 
 </details>
 
@@ -65,7 +65,7 @@ None directly; consumers own model-visible results and request assembly.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Co-located executable required** — resolution uses the Host's packaged binary path. A remote subprocess provider without that binary fails; there is no system-rg lookup or filesystem-traversal fallback.
+- **Co-located executable required** — resolution uses the Host's packaged binary path, or, on Android, a system `rg` on `PATH`. A remote subprocess provider without either fails; there is no filesystem-traversal fallback and no executable download.
 - **Record buffering** — streaming retains one incomplete record plus the current stream chunk; callers whose filenames may contain newlines use NUL separators rather than newlines. Records decode as UTF-8, so a filename that is not valid UTF-8 arrives with U+FFFD replacements and cannot be opened by that string.
 
 <a id="dev-note"></a>

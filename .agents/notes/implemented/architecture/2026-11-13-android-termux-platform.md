@@ -18,6 +18,8 @@ Four platform changes make the source checkout run on Android arm64.
 
 `native/system/packages/android-arm64` adds a platform package with one Node-API v8 addon at `bin/system.node` and no libc split, because bionic has none. `native/system/scripts/build.ts` builds it with the host `cc` and the running Node installation's headers, so `pnpm run build:native-system` produces it without a cross toolchain. The platform package carries no Landlock launcher: kernels before 5.13 have no Landlock, so the probe reports unusable and confinement stays off.
 
+`@vscode/ripgrep` publishes no Android platform package either, so `resolveRgPath()` reads the first executable `rg` from `PATH` there and the Termux `ripgrep` package serves `glob`, `grep`, and workspace search. Other platforms keep the packaged executable and still fail loudly when it is missing.
+
 `scripts/install-lefthook.mjs` resolves the executable package that Lefthook's own lookup would load, and skips hook installation with a message when it is absent. A missing binary is a missing capability, not a wrong repository state, so it must not fail dependency installation.
 
 ## Alternatives considered

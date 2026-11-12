@@ -22,6 +22,10 @@ Keep the checkout, installed dependencies, and toolchain in the same operating s
 
 Install dependencies separately in each environment because native binaries and links can differ between operating systems. Test results apply to the environment where the tests ran; Windows-specific behavior still needs native Windows validation.
 
+### Android (Termux)
+
+Termux supplies its own Node.js, the pnpm Corepack manages, and a clang toolchain; install `nodejs`, `git`, `python`, `make`, and `clang` from the Termux package manager first. npm publishes no Android prebuilds for `koffi` or `node-pty`, so `pnpm install` builds both from source with the host compiler. The session write lock comes from `pnpm run build:native-system`, which builds the `android-arm64` flock addon; without it, launching `dsh web` succeeds but session writes are rejected. Landlock confinement and Lefthook Git hooks have no Android build: the sandbox probes unusable, and the hook installer skips installation.
+
 ### First-time setup
 
 pnpm uses its strict symlinked linker so undeclared dependencies fail instead of relying on hoisting. Keep dependency build scripts explicitly allowlisted in `pnpm-workspace.yaml`.

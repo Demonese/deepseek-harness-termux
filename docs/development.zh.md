@@ -24,6 +24,10 @@
 
 在每种环境中分别安装依赖，因为不同操作系统使用的原生二进制和链接可能不同。测试结果适用于执行测试的环境；Windows 特有行为仍需在原生 Windows 上验证。
 
+### Android (Termux)
+
+Termux 自带 Node.js、由 Corepack 管理的 pnpm 以及 clang 工具链；请先用 Termux 包管理器安装 `nodejs`、`git`、`python`、`make` 与 `clang`。npm 未提供 `koffi` 与 `node-pty` 的 Android 预编译产物，因此 `pnpm install` 会用宿主编译器从源码构建这两个包。会话写锁来自 `pnpm run build:native-system`，它构建 `android-arm64` 的 flock 插件；缺少该插件时 `dsh web` 仍可启动，但会话写入会被拒绝。Landlock 强制隔离与 Lefthook Git 钩子没有 Android 构建：沙箱探测为不可用，钩子安装脚本会跳过安装。
+
 ### 首次搭建
 
 pnpm 使用严格的符号链接布局，让未声明的依赖直接失败，而不是依赖提升。依赖的构建脚本必须明确列入 `pnpm-workspace.yaml` 的允许列表。

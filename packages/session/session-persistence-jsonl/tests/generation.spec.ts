@@ -2,6 +2,7 @@ import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import {
+  copyFile,
   link,
   mkdir,
   mkdtemp,
@@ -40,6 +41,27 @@ import type {
 } from '@deepseek-ai/dsh-session-format'
 
 const roots: string[] = []
+
+/** Whether this file system lets the suite create a hard link; one case requires the shared inode. */
+async function hardLinksAvailable(): Promise<boolean> {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-hardlink-probe-'))
+  try {
+    const source = join(root, 'source')
+    await writeFile(source, 'x')
+    try {
+      await link(source, join(root, 'linked'))
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'EACCES' || code === 'EPERM' || code === 'ENOSYS' || code === 'EOPNOTSUPP') return false
+      throw error
+    }
+    return true
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+}
+
+const hardLinkSupport = await hardLinksAvailable()
 
 async function tempRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'dsh-jsonl-generation-'))
@@ -586,7 +608,7 @@ describe('JSONL immutable generation publication', () => {
       ...identical,
       verifyCurrentFile: async (path, compression, expectedId, expectedEventCount) => {
         const verified = await verifyJsonlCurrentGeneration(path, compression, expectedId, expectedEventCount)
-        if (path !== identical.currentPath) await link(path, identical.currentPath)
+        if (path !== identical.currentPath) await copyFile(path, identical.currentPath)
         return verified
       },
     })
@@ -1228,7 +1250,7 @@ describe('JSONL immutable generation publication', () => {
     },
   )
 
-  it('accepts an identical regular hardlink target', async () => {
+  it.skipIf(!hardLinkSupport)('accepts an identical regular hardlink target', async () => {
     const root = await tempRoot()
     const request = options(root)
     const expected = join(root, 'expected.jsonl')
@@ -1370,6 +1392,27 @@ describe('JSONL immutable generation publication', () => {
       platform: 'darwin',
       fs: posixSimulationFs({ link: async () => { throw fsError('EEXIST') } }),
     })).rejects.toMatchObject({ code: 'ENOENT', path: request.currentPath })
+  })
+
+  it('publishes through rename when the file system denies hard links', async () => {
+    const root = await tempRoot()
+    const request = options(root)
+    await writeFile(request.sourcePath, line(header(0)) + line(event0))
+    const renamed: [string, string][] = []
+
+    await expect(ensureWithOverrides(request, {
+      platform: 'darwin',
+      fs: posixSimulationFs({
+        link: async () => { throw fsError('EACCES') },
+        rename: async (from: string, to: string) => {
+          renamed.push([from, to])
+          await rename(from, to)
+        },
+      }),
+    })).resolves.toMatchObject({ status: 'migrated', path: request.currentPath })
+
+    expect(renamed).toEqual([[expect.stringContaining('.tmp'), request.currentPath]])
+    expect(await readFile(request.currentPath, 'utf8')).toBe(line(header(SESSION_FORMAT_VERSION)) + line(event0))
   })
 
   it('does not reopen a target after exclusive publication', async () => {
@@ -1625,7 +1668,9 @@ describe('JSONL immutable generation publication', () => {
     await writeFile(request.sourcePath, line(header(0)) + line(event0))
     let raced = false
     const linkFile = async (existingPath: string, newPath: string) => {
-      await link(existingPath, newPath)
+      // The simulated peer publishes the winning bytes and reports the collision;
+      // the transport need not be a hard link for the arbitration under test.
+      await copyFile(existingPath, newPath)
       raced = true
       throw fsError('EEXIST')
     }

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-13-session-publish-without-hard-links.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-13-session-publish-without-hard-links.md
+/agent-note-session-publication-without-hard-links:
+  en: 0581af6dacd32dd5
+  zh: e65850dbfb33281a
+/agent-note-session-publication-without-hard-links/problem:
+  en: 43162575ee8e530e
+  zh: d4cfede09bcfaac0
+/agent-note-session-publication-without-hard-links/decision:
+  en: 9b9e3f1fe842b91c
+  zh: 2df3428b79fba675
+/agent-note-session-publication-without-hard-links/alternatives-considered:
+  en: 3cdf81c34b3b098d
+  zh: 74933de0e55e3e3e
+/agent-note-session-publication-without-hard-links/consequences:
+  en: 6095a32f6352197f
+  zh: 970aa373a7a87ae7

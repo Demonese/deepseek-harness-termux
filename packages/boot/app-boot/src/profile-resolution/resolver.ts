@@ -732,18 +732,27 @@ class ResolutionRouter {
 
 function internalModules(): InternalModules {
   const require = createRequire(import.meta.url)
-  const addon = require('node-addon-require-builtin') as { requireBuiltin(moduleId: string): unknown }
-  const esmModule = addon.requireBuiltin('internal/modules/esm/loader') as {
+  // Platforms without a published native binding (Android) reach internals through --expose-internals.
+  const builtin = (moduleId: string): unknown => {
+    if (process.execArgv.includes('--expose-internals')) {
+      try {
+        return require(moduleId)
+      } catch { /* fall back to the addon below */ }
+    }
+    const addon = require('node-addon-require-builtin') as { requireBuiltin(moduleId: string): unknown }
+    return addon.requireBuiltin(moduleId)
+  }
+  const esmModule = builtin('internal/modules/esm/loader') as {
     getOrInitializeCascadedLoader(): ModuleLoaderV1 | ModuleLoaderV2
   }
-  const cjsModule = addon.requireBuiltin('internal/modules/cjs/loader') as { Module: CommonJsModule }
-  const cjsHelpers = addon.requireBuiltin('internal/modules/helpers') as {
+  const cjsModule = builtin('internal/modules/cjs/loader') as { Module: CommonJsModule }
+  const cjsHelpers = builtin('internal/modules/helpers') as {
     getCjsConditions(): ReadonlySet<string>
   }
-  const esmUtils = addon.requireBuiltin('internal/modules/esm/utils') as {
+  const esmUtils = builtin('internal/modules/esm/utils') as {
     getDefaultConditions(): readonly string[]
   }
-  const esmResolve = addon.requireBuiltin('internal/modules/esm/resolve') as {
+  const esmResolve = builtin('internal/modules/esm/resolve') as {
     defaultResolve(
       specifier: string,
       context: { parentURL?: string; conditions?: readonly string[] },

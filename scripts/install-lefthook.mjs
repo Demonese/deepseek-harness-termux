@@ -13,6 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import lefthookPackage from 'lefthook/package.json' with { type: 'json' }
 
@@ -574,6 +575,34 @@ function runLefthook(root, lefthook) {
   if (result.status !== 0) throw commandFailure(lefthook, args, result)
 }
 
+/**
+ * Name of the optional package holding Lefthook's native executable, using
+ * the same OS naming as Lefthook's own executable lookup. npm publishes it
+ * only for platforms Lefthook supports.
+ */
+function lefthookPlatformPackage() {
+  const os = process.platform === 'win32' || process.platform === 'cygwin' ? 'windows' : process.platform
+  return `lefthook-${os}-${process.arch}`
+}
+
+/**
+ * Whether the shim at `node_modules/.bin/lefthook` can load its platform
+ * binary. A platform without a Lefthook release (Android) or an install that
+ * skipped optional packages leaves the shim in place but unusable, so hook
+ * installation is skipped instead of failing the whole install.
+ */
+function lefthookPlatformBinaryAvailable() {
+  const extension = process.platform === 'win32' ? '.exe' : ''
+  const lefthookManifest = createRequire(import.meta.url).resolve('lefthook/package.json')
+  try {
+    createRequire(lefthookManifest).resolve(`${lefthookPlatformPackage()}/bin/lefthook${extension}`)
+    return true
+  } catch (error) {
+    if (errorCode(error) === 'MODULE_NOT_FOUND') return false
+    throw error
+  }
+}
+
 function configSource(entry) {
   return `${entry.origin}: ${JSON.stringify(entry.value)}`
 }
@@ -629,6 +658,12 @@ async function main() {
   const isWindows = process.platform === 'win32'
   const lefthook = join(root, 'node_modules', '.bin', isWindows ? 'lefthook.cmd' : 'lefthook')
   if (!existsSync(lefthook)) return
+  if (!lefthookPlatformBinaryAvailable()) {
+    console.log(
+      `[install-lefthook] no ${lefthookPlatformPackage()} release for this platform; skipping Git hook installation`,
+    )
+    return
+  }
 
   assertSupportedGit(root)
   const gitDirectory = stripGitLineTerminator(git(['rev-parse', '--absolute-git-dir'], root).stdout)

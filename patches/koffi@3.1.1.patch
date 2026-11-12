@@ -1,0 +1,16 @@
+diff --git a/lib/native/base/base.cc b/lib/native/base/base.cc
+index a157161b44c2838ca26b72728cb089a32b688e3d..216f5e8096c7e75b19b50beb4deb2ed21ddabe59 100644
+--- a/lib/native/base/base.cc
++++ b/lib/native/base/base.cc
+@@ -2947,6 +2947,11 @@ static FileType FileModeToType(mode_t mode)
+     }
+ }
+ 
++#if defined(__ANDROID__)
++// bionic declares statx() only for API >= 30 with _GNU_SOURCE; Android 11+ exports it.
++extern "C" int statx(int dirfd, const char *pathname, int flags, unsigned int mask, struct statx *statxbuf);
++#endif
++
+ static StatResult StatAt(int fd, bool fd_is_directory, const char *filename, unsigned int flags, FileInfo *out_info)
+ {
+ #if defined(__linux__)

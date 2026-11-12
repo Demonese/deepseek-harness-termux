@@ -166,6 +166,7 @@ pnpm applies local patches to the following packages at install time, so shipped
 - `@yao-pkg/pkg@6.21.0` — [`patches/@yao-pkg__pkg@6.21.0.patch`](patches/@yao-pkg__pkg@6.21.0.patch)
 - `app-builder-lib@26.17.0` — [`patches/app-builder-lib@26.17.0.patch`](patches/app-builder-lib@26.17.0.patch)
 - `exceljs@4.4.0` — [`patches/exceljs@4.4.0.patch`](patches/exceljs@4.4.0.patch)
+- `koffi@3.1.1` — [`patches/koffi@3.1.1.patch`](patches/koffi@3.1.1.patch)
 - `lexical@0.49.0` — [`patches/lexical@0.49.0.patch`](patches/lexical@0.49.0.patch)
 - `mdast-util-gfm-autolink-literal@2.0.1` — [`patches/mdast-util-gfm-autolink-literal@2.0.1.patch`](patches/mdast-util-gfm-autolink-literal@2.0.1.patch)
 - `micromark-extension-gfm-autolink-literal@2.1.0` — [`patches/micromark-extension-gfm-autolink-literal@2.1.0.patch`](patches/micromark-extension-gfm-autolink-literal@2.1.0.patch)

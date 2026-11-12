@@ -6,7 +6,7 @@
  * surfaces as a per-call `SEARCH_FAILED` — not a composition-load failure.
  */
 
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ToolExecution, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
@@ -19,6 +19,19 @@ vi.mock('@vscode/ripgrep', () => new Proxy({}, {
     throw new Error('platform package @vscode/ripgrep-win32-x64 is not installed')
   },
 }))
+
+// Android resolves from PATH before touching the dependency, so these cases pin
+// a platform that reads it; the Android PATH rule is covered in
+// @deepseek-ai/dsh-util-ripgrep's path.spec.ts.
+const originalPlatform = process.platform
+
+beforeEach(() => {
+  Reflect.defineProperty(process, 'platform', { configurable: true, enumerable: true, value: 'linux' })
+})
+
+afterEach(() => {
+  Reflect.defineProperty(process, 'platform', { configurable: true, enumerable: true, value: originalPlatform })
+})
 
 describe('lazy packaged-ripgrep resolution', () => {
   it('fails the first search call with SEARCH_FAILED instead of failing module load', async () => {

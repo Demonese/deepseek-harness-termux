@@ -24,7 +24,6 @@ import ToolRuntime, { TOOL_ABORTED_BEFORE_DISPATCH, type ToolExecution, type Too
 import { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
-import { rgPath } from '@vscode/ripgrep'
 import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
 import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
 import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
@@ -51,6 +50,10 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 
 const testToolSignal = new AbortController().signal
+
+// The executable is host-dependent: Android reads a system `rg`, every other
+// platform the packaged one. argv assertions compare against both alike.
+const rgPath = await resolveRgPath()
 
 /**
  * Normalize a POSIX-style test path to the platform separator: the sampler and
@@ -547,14 +550,16 @@ describe('workdir derivation and signal forwarding', () => {
     expect(text(result)).toContain('aborted before completion')
   })
 
-  it('resolves the packaged ripgrep path lazily, once per process', async () => {
-    // The module must not touch @vscode/ripgrep at load (a missing platform
-    // package would otherwise fail the whole composition), and repeated
-    // resolution reuses the first result. The resolution-failure path is
-    // pinned separately in rg-path.spec.ts.
+  it('resolves the ripgrep executable once per process', async () => {
+    // Repeated resolution reuses the first result; where the dependency
+    // publishes an executable, that executable is the answer. The
+    // resolution-failure path is pinned separately in rg-path.spec.ts.
     await setup()
-    expect(await resolveRgPath()).toBe(rgPath)
     expect(resolveRgPath()).toBe(resolveRgPath())
+    if (process.platform !== 'android') {
+      const { rgPath: packaged } = await import('@vscode/ripgrep')
+      expect(await resolveRgPath()).toBe(packaged)
+    }
   })
 
   it('rejects when the subprocess implementation drops a requested collect stream', async () => {

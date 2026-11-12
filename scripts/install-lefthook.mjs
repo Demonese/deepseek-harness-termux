@@ -586,19 +586,30 @@ function lefthookPlatformPackage() {
 }
 
 /**
- * Whether the shim at `node_modules/.bin/lefthook` can load its platform
- * binary. A platform without a Lefthook release (Android) or an install that
- * skipped optional packages leaves the shim in place but unusable, so hook
- * installation is skipped instead of failing the whole install.
+ * Whether the Lefthook installed under `root` positively lacks its platform
+ * executable. A platform without a Lefthook release (Android) or an install
+ * that skipped optional packages leaves the shim in place but unusable, so
+ * hook installation is skipped instead of failing the whole install. A
+ * Lefthook package that cannot be resolved at all is not evidence either way:
+ * the shim may still work, so installation proceeds and the executable
+ * reports its own failure.
+ * @param {string} root - repository root whose node_modules holds the shim.
+ * @returns {boolean} true when the platform executable package is absent.
  */
-function lefthookPlatformBinaryAvailable() {
+function lefthookPlatformBinaryMissing(root) {
   const extension = process.platform === 'win32' ? '.exe' : ''
-  const lefthookManifest = createRequire(import.meta.url).resolve('lefthook/package.json')
+  let lefthookManifest
   try {
-    createRequire(lefthookManifest).resolve(`${lefthookPlatformPackage()}/bin/lefthook${extension}`)
-    return true
+    lefthookManifest = createRequire(join(root, 'package.json')).resolve('lefthook/package.json')
   } catch (error) {
     if (errorCode(error) === 'MODULE_NOT_FOUND') return false
+    throw error
+  }
+  try {
+    createRequire(lefthookManifest).resolve(`${lefthookPlatformPackage()}/bin/lefthook${extension}`)
+    return false
+  } catch (error) {
+    if (errorCode(error) === 'MODULE_NOT_FOUND') return true
     throw error
   }
 }
@@ -658,7 +669,7 @@ async function main() {
   const isWindows = process.platform === 'win32'
   const lefthook = join(root, 'node_modules', '.bin', isWindows ? 'lefthook.cmd' : 'lefthook')
   if (!existsSync(lefthook)) return
-  if (!lefthookPlatformBinaryAvailable()) {
+  if (lefthookPlatformBinaryMissing(root)) {
     console.log(
       `[install-lefthook] no ${lefthookPlatformPackage()} release for this platform; skipping Git hook installation`,
     )

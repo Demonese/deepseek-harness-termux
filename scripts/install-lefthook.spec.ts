@@ -123,6 +123,26 @@ function installFakeLefthook(root: string): void {
   chmodSync(shim, 0o755)
 }
 
+/** Platform executable package name, spelled as Lefthook's own lookup resolves it. */
+function lefthookPlatformPackage(): string {
+  const os = process.platform === 'win32' || process.platform === 'cygwin' ? 'windows' : process.platform
+  return `lefthook-${os}-${process.arch}`
+}
+
+/** Install the Lefthook manifest the installer resolves the executable through. */
+function installLefthookManifest(root: string): void {
+  write(
+    join(root, 'node_modules/lefthook/package.json'),
+    `${JSON.stringify({ name: 'lefthook', version: '0.0.0', bin: { lefthook: 'bin/index.js' } })}\n`,
+  )
+}
+
+/** Install the platform executable package Lefthook loads for this host. */
+function installLefthookPlatformBinary(root: string): void {
+  const extension = process.platform === 'win32' ? '.exe' : ''
+  write(join(root, 'node_modules', lefthookPlatformPackage(), 'bin', `lefthook${extension}`), '')
+}
+
 function createFixture(names: { main?: string; linked?: string } = {}): Fixture {
   const container = mkdtempSync(join(tmpdir(), 'dsh-lefthook-'))
   fixtures.push(container)
@@ -240,6 +260,32 @@ describe('worktree-local Lefthook installer', { timeout: 90_000 }, () => {
       expect(existsSync(join(common, 'config.worktree'))).toBe(false)
     })
   }
+
+  it('skips hook installation when the platform executable package is absent', async () => {
+    const fixture = createFixture()
+    installLefthookManifest(fixture.main)
+
+    const result = await runInstaller(fixture, fixture.main)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain(
+      `[install-lefthook] no ${lefthookPlatformPackage()} release for this platform; skipping Git hook installation`,
+    )
+    expect(gitResult(fixture, fixture.main, ['config', '--get', 'core.hooksPath']).status).toBe(1)
+    expect(existsSync(hooksPath(fixture, fixture.main))).toBe(false)
+  })
+
+  it('installs hooks when the platform executable package is present', async () => {
+    const fixture = createFixture()
+    installLefthookManifest(fixture.main)
+    installLefthookPlatformBinary(fixture.main)
+
+    const result = await runInstaller(fixture, fixture.main)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(git(fixture, fixture.main, ['config', '--worktree', '--get', 'core.hooksPath']))
+      .toBe(hooksPath(fixture, fixture.main))
+  })
 
   it('isolates main and linked worktrees without changing legacy common hooks', async () => {
     const fixture = createFixture()

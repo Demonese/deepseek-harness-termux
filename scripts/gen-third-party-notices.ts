@@ -50,6 +50,7 @@ const HOST_BUNDLED_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
 /** First-party public native packages: reachable at runtime but not third-party. */
 const FIRST_PARTY = new Set([
   '@deepseek-ai/node-addon-system',
+  '@deepseek-ai/node-addon-system-android-arm64',
   '@deepseek-ai/node-addon-system-darwin-arm64',
   '@deepseek-ai/node-addon-system-darwin-x64',
   '@deepseek-ai/node-addon-system-linux-arm64',

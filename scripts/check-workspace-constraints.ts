@@ -52,6 +52,7 @@ const vendoredPackages = new Set([
 ])
 const publicNativePackages = new Set([
   '@deepseek-ai/node-addon-system',
+  '@deepseek-ai/node-addon-system-android-arm64',
   '@deepseek-ai/node-addon-system-darwin-arm64',
   '@deepseek-ai/node-addon-system-darwin-x64',
   '@deepseek-ai/node-addon-system-linux-arm64',

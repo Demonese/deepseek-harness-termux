@@ -29,6 +29,19 @@ export function platformDirs() {
     .map((name) => path.join('packages', name));
 }
 
+/**
+ * Platform packages built on the device that owns the platform rather than on a
+ * GitHub-hosted runner: Android needs the Termux toolchain and the Node
+ * installation it links against. GitHub matrices, assembly, and packing skip
+ * these packages; `--current-platform-only` runs on that device pack them.
+ */
+export const deviceBuiltPlatforms = new Set(['android-arm64']);
+
+/** Platform packages a GitHub-hosted runner builds, assembles, and packs. */
+export function hostedPlatformDirs() {
+  return platformDirs().filter((dir) => !deviceBuiltPlatforms.has(path.basename(dir)));
+}
+
 /** Entry packages: every other `packages/<name>` with a `package.json`. */
 export function entryDirs() {
   return fs.readdirSync(packagesRoot)

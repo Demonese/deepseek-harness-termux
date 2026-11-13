@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { entryDirs, platformDirs, readJson, root } from './repo.mjs';
+import { entryDirs, hostedPlatformDirs, platformDirs, readJson, root } from './repo.mjs';
 
 const args = process.argv.slice(2);
 const currentPlatformOnly = args.includes('--current-platform-only');
@@ -90,7 +90,7 @@ try {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
 
-  const dirs = [...(currentPlatformOnly ? hostPlatformDirs() : platformDirs()), ...entryDirs()];
+  const dirs = [...(currentPlatformOnly ? hostPlatformDirs() : hostedPlatformDirs()), ...entryDirs()];
   const platformSet = new Set(platformDirs());
   const publishOrder = [];
   for (const dir of dirs) {

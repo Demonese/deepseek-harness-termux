@@ -9,7 +9,7 @@
  */
 
 import path from 'node:path';
-import { platformDirs, readJson, root } from './repo.mjs';
+import { hostedPlatformDirs, readJson, root } from './repo.mjs';
 
 /** GitHub runner per prebuilds.json `platform` value — native builders only, no cross toolchain. */
 const RUNNERS = {
@@ -28,7 +28,7 @@ function runnerFor(platform) {
 }
 
 function platformManifests() {
-  return platformDirs().map((dir) => ({
+  return hostedPlatformDirs().map((dir) => ({
     dir,
     name: path.basename(dir),
     prebuilds: readJson(path.join(root, dir, 'prebuilds.json')),

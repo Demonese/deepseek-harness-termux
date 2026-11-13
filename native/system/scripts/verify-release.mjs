@@ -7,8 +7,9 @@
  * `assemble-prebuilds.mjs` or a local `build:native`).
  */
 
+import fs from 'node:fs';
 import path from 'node:path';
-import { packageDirs, platformDirs, readJson, root, verifyPlatformBinaries } from './repo.mjs';
+import { deviceBuiltPlatforms, packageDirs, platformDirs, readJson, root, verifyPlatformBinaries } from './repo.mjs';
 
 const TAG_PREFIX = 'refs/tags/node-addon-system-v';
 
@@ -42,7 +43,11 @@ function verifyVersions() {
 }
 
 function verifyPrebuilds() {
+  // Hosted platforms must be complete; a device-built platform is verified in
+  // the checkout that contains its binaries and skipped where GitHub assembled
+  // the others.
   for (const dir of platformDirs()) {
+    if (deviceBuiltPlatforms.has(path.basename(dir)) && !fs.existsSync(path.join(root, dir, 'bin'))) continue;
     const { name, count } = verifyPlatformBinaries(path.join(root, dir));
     console.log(`Verified ${name}: ${count} binaries`);
   }

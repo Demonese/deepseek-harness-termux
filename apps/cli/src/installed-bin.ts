@@ -4,7 +4,8 @@
  * @module @deepseek-ai/dsh/installed-bin
  */
 import { realpathSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
+import { restartForInternals } from './internals-reexec.ts'
 import type { RunCliOptions } from './bin.ts'
 
 /**
@@ -18,6 +19,7 @@ export async function runCli(options?: RunCliOptions): Promise<void> {
 }
 
 if (import.meta.main) {
+  await restartForInternals(fileURLToPath(import.meta.url))
   // Windows ESM can retain an 8.3 spelling while profile resolution expands it.
   const entry = process.platform === 'win32' ? pathToFileURL(realpathSync.native(import.meta.filename)).href : import.meta.url
   if (entry === import.meta.url) await runCli()

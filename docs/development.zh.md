@@ -26,7 +26,7 @@
 
 ### Android (Termux)
 
-Termux 自带 Node.js、由 Corepack 管理的 pnpm 以及 clang 工具链；请先用 Termux 包管理器安装 `nodejs`、`git`、`python`、`make`、`clang` 与 `ripgrep`。npm 未提供 `koffi` 与 `node-pty` 的 Android 预编译产物，因此 `pnpm install` 会用宿主编译器从源码构建这两个包。会话写锁来自 `pnpm run build:native-system`，它构建 `android-arm64` 的 flock 插件；缺少该插件时 `dsh web` 仍可启动，但会话写入会被拒绝。`@vscode/ripgrep` 同样没有 Android 构建，因此 `glob`、`grep` 与工作区搜索会运行 `PATH` 中的 Termux `ripgrep` 可执行文件。Landlock 强制隔离与 Lefthook Git 钩子没有 Android 构建：沙箱探测为不可用，钩子安装脚本会跳过安装。
+Termux 自带 Node.js、由 Corepack 管理的 pnpm 以及 clang 工具链；请先用 Termux 包管理器安装 `nodejs`、`git`、`python`、`make`、`clang` 与 `ripgrep`。npm 未提供 `koffi` 与 `node-pty` 的 Android 预编译产物，因此 `pnpm install` 会用宿主编译器从源码构建这两个包。会话写锁来自 `pnpm run build:native-system`，它构建 `android-arm64` 的 flock 插件；缺少该插件时 `dsh web` 仍可启动，但会话写入会被拒绝。`@vscode/ripgrep` 同样没有 Android 构建，因此 `glob`、`grep` 与工作区搜索会运行 `PATH` 中的 Termux `ripgrep` 可执行文件。内部模块访问插件没有 Android 构建，因此安装版的 CLI 会先用 `--expose-internals` 重启自身，link 出来的 `dsh` 无需外层加旗标。Landlock 强制隔离与 Lefthook Git 钩子没有 Android 构建：沙箱探测为不可用，钩子安装脚本会跳过安装。
 
 ### 首次搭建
 

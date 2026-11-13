@@ -19,6 +19,13 @@ function pathEntry(executable: boolean): string {
   return directory
 }
 
+/** Create a PATH entry that holds no `rg` file on any platform. */
+function emptyPathEntry(): string {
+  const directory = mkdtempSync(join(tmpdir(), 'dsh-rg-path-'))
+  temporaryDirectories.push(directory)
+  return directory
+}
+
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return { ...actual, existsSync }
@@ -113,7 +120,9 @@ describe('ripgrep resolution', () => {
     await expect(resolveRgPath()).resolves.toBe(join(directory, 'rg'))
   })
 
-  it('skips a non-executable rg entry on the Android PATH', async () => {
+  // Windows has no executable mode bit: accessSync(X_OK) reports existence there,
+  // so this PATH entry cannot be made non-executable for the check under test.
+  it.skipIf(process.platform === 'win32')('skips a non-executable rg entry on the Android PATH', async () => {
     Reflect.defineProperty(process, 'platform', { configurable: true, enumerable: true, value: 'android' })
     const directory = pathEntry(true)
     vi.stubEnv('PATH', [pathEntry(false), directory, ''].join(delimiter))
@@ -132,7 +141,7 @@ describe('ripgrep resolution', () => {
 
   it('names the Android platform when PATH holds no ripgrep', async () => {
     Reflect.defineProperty(process, 'platform', { configurable: true, enumerable: true, value: 'android' })
-    vi.stubEnv('PATH', pathEntry(false))
+    vi.stubEnv('PATH', emptyPathEntry())
     const { resolveRgPath } = await import('@deepseek-ai/dsh-util-ripgrep')
 
     await expect(resolveRgPath()).rejects.toThrow(

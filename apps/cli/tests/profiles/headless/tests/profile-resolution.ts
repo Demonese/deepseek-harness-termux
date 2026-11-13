@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolveExampleLaunch, type ExampleMode } from '@deepseek-ai/dsh-loader-smoke'
 import { execa } from 'execa'
 import { expect, it } from 'vitest'
+import { INTERNALS_FLAG } from '../../../../src/internals-reexec.ts'
 
 const repoRoot = fileURLToPath(new URL('../../../../../../', import.meta.url))
 const processTimeoutMs = 75_000
@@ -19,6 +20,9 @@ const sourceProbeName = 'source-probe'
 const externalName = 'profile-resolution-external'
 const externalLeafName = 'profile-resolution-external-leaf'
 const marker = 'DSH_PROFILE_RESOLUTION '
+// Android restarts a CLI that lacks the flag, because the internals accessor addon
+// publishes no build there; the restarted process reports the flag it now runs with.
+const internalsRestartArgs = process.platform === 'android' ? [INTERNALS_FLAG] : []
 
 interface ResolutionEvidence {
   execArgv: string[]
@@ -293,7 +297,9 @@ export function testProfileResolution(mode: ExampleMode): void {
       expect(evidence.sourceLeafExplicitCjs).toBe(realpathSync.native(join(sourceDevLeaf, 'index.cjs')))
       expect(evidence.sourceLeafCjs).not.toBe(evidence.sourceLeafExplicitCjs)
       expect(evidence.executor).toBe(true)
-      expect(evidence.execArgv).toEqual(mode === 'src' ? launch.args.slice(0, 2) : [])
+      expect(evidence.execArgv).toEqual(mode === 'src'
+        ? [...launch.args.slice(0, 2), ...internalsRestartArgs]
+        : internalsRestartArgs)
       for (const name of ['tools', 'agent-loop']) {
         const selected = mode === 'src' ? 'src/index.ts' : 'lib/index.js'
         const other = mode === 'src' ? 'lib' : 'src'

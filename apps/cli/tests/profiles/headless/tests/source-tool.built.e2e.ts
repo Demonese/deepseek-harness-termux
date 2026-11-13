@@ -17,11 +17,15 @@ import { fileURLToPath } from 'node:url'
 import { clearedProxyEnv } from '@deepseek-ai/dsh-http-proxy'
 import { execa } from 'execa'
 import { describe, expect, it } from 'vitest'
+import { INTERNALS_FLAG } from '../../../../src/internals-reexec.ts'
 import type { SourceToolEvidence } from '../../../fixtures/source-tool-driver.ts'
 
 const repoRoot = fileURLToPath(new URL('../../../../../../', import.meta.url))
 const dshSourceBin = 'apps/cli/src/bin.ts'
 const sourceToolTimeoutMs = 90_000
+// Android restarts a CLI that lacks the flag, because the internals accessor addon
+// publishes no build there; the restarted process reports the flag it now runs with.
+const internalsRestartArgs = process.platform === 'android' ? [INTERNALS_FLAG] : []
 
 describe.skipIf(!existsSync(join(repoRoot, 'apps/cli/lib/bin.js')))('dsh SOURCE tools with prepared runtime artifacts', () => {
   it('dispatches a source-profile shell call to a result, including sandbox-unavailable hosts, without mixing tools src/lib', async () => {
@@ -72,7 +76,7 @@ describe.skipIf(!existsSync(join(repoRoot, 'apps/cli/lib/bin.js')))('dsh SOURCE 
       const records = result.stdout.split('\n').filter(line => line.startsWith('DSH_SOURCE_TOOL_RESULT '))
       expect(records, diagnostic).toHaveLength(1)
       const evidence = JSON.parse(records[0]!.slice('DSH_SOURCE_TOOL_RESULT '.length)) as SourceToolEvidence
-      expect(evidence.execArgv).toEqual(['--import', 'tsx/esm'])
+      expect(evidence.execArgv).toEqual(['--import', 'tsx/esm', ...internalsRestartArgs])
       expect(evidence.errors).toEqual([])
       for (const pkg of ['tools', 'agent-loop']) {
         expect(evidence.modules.filter(url => url.endsWith(`/packages/core/${pkg}/src/index.ts`))).toHaveLength(1)

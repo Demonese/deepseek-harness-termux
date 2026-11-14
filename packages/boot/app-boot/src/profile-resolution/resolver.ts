@@ -737,7 +737,7 @@ function internalModules(): InternalModules {
     if (process.execArgv.includes('--expose-internals')) {
       try {
         return require(moduleId)
-      } catch { /* fall back to the addon below */ }
+      } catch (error) { /* An id this Node build does not expose is the addon's to answer below. */ }
     }
     const addon = require('node-addon-require-builtin') as { requireBuiltin(moduleId: string): unknown }
     return addon.requireBuiltin(moduleId)
